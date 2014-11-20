@@ -1,0 +1,311 @@
+<script type="text/ng-template" id="gridDefault.html">
+            <div ng-if="filter.filterExpressionActive" class="_filterexpression">
+            <a class="btn btn-xs btn-default" ng-if="filter.filterExpression.length==0" ng-click="filter.addChild(0, filter.filterExpression)"><i class="fa fa-plus"></i></a>
+            <div class="_expression" ng-repeat="exp in filter.filterExpression" ng-include="'gridFilterExpression.html'"></div>
+            <div class="text-left">
+                <a class="btn btn-default" ng-if="filter.filterExpression.length>0" ng-class="{active:filter.setAsDefault}" ng-click="filter.setAsDefault=!filter.setAsDefault"><i class="fa fa-lg" ng-class="{'fa-square-o':!filter.setAsDefault,'fa-check-square-o':filter.setAsDefault}"></i> Default</a>
+                <a class="btn btn-success" ng-if="filter.filterExpression.length>0" ng-click="filter.applyFilter()"><i class="fa fa-filter"></i> Apply filter</a>
+                <a class="btn btn-success" ng-if="filter.filterExpression.length>0" ng-click="filter.saveFilter()"><i class="fa fa-save"></i> Save</a>
+                <a class="btn btn-success" ng-if="filter.filterExpression.length>0 && filter.currentFilterExpression>0" ng-click="filter.saveFilter(true)"><i class="fa fa-save"></i> Save As</a>
+            </div>
+        </div>
+        <div ng-if="grid.groupActions.length" class="text-right _gridaction">
+            <span ng-repeat="action in grid.groupActions" class="grid-action" ng-include="'gridActions.html'"></span>
+        </div>
+        <table class="_grid-tbl">
+            <thead>
+                <tr ng-show="showHeaders">
+                    <th class="expand"></th>
+                    <th ng-repeat="col in grid.columns track by $index" ng-click="orderby(col.value)" ng-style="col.style">
+                        {{col.name}}
+                        <i class="_sort-icon fa fa-sort-amount-{{sort.reverse?'desc':'asc'}}" ng-show="sort.column==col.value"></i>
+                    </th>
+                    <th ng-if="grid.rowActions.length"> Actions</th>
+                </tr>
+                <tr class="col-filter" ng-show="filter.columnFilterActive" class="col-filter">
+                    <td class="expand"></td>
+                    <td ng-repeat="col in grid.columns track by $index" ng-style="col.style">
+                        <input type="text" class="form-control" ng-model="filter.columns[col.value]" ng-if="!col.filter.type || col.filter.type=='text'" />
+                        <input type="number" class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='number'" />
+
+                        <input type="text" datepicker-popup datepicker-append-to-body="true" class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='date'" />
+
+                        <select class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='dropdown'">
+                            <option value=""></option>
+                            <option ng-repeat="cval in grid.getUniqueColumnValues(col)" value="{{cval}}">{{cval}}</option>
+                        </select>
+                    </td>
+                    <td ng-if="grid.rowActions.length"></td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat-start="row in grid.rows |  orderBy:sort.column:sort.reverse | columnFilter:filter.columns | gridfilter:filter.search:pagination.pageSize:pagination.currentPage:grid.serverPaging" ng-init="row.$$hactive=!!row.$$hactive" ng-class="{odd:$odd,even:$even,selected: grid.inSelection(row)>=0}">
+                    <td class="expand" ng-click="grid.loadHierarchy(row)"><i ng-if="grid.hierarchy" class="fa fa-chevron-{{row.$$hactive?'down':'right'}}"></i></td>
+                    <td ng-click="grid.selectRow(row)" ng-repeat="c in grid.columns" style="background-color:{{row._rowColor}}">
+                        <a href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='link'"> {{row[c.value]}}</a>
+                        <a href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='modal'" modal-popup="c.modalProperties" modal-popup-title="{{c.modalTitle}}"> {{row[c.value]}}</a>
+                        <a href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='aside'" aside="c.asideProperties" aside-title="{{c.asideTitle}}"> {{row[c.value]}}</a>
+                        <i class="{{row[c.value]}}" ng-if="c.type=='icon'"></i>
+                        <img ng-src="{{grid.getURL(c.url, row)}}" ng-if="c.type=='image'" />
+                        <span ng-if="c.type==''">{{row[c.value]}}</span>
+                    </td>
+                    <td ng-if="grid.rowActions.length" ng-click="$event.stopPropagation()" style="background-color:{{row._rowColor}}">
+                        <span ng-repeat="action in grid.rowActions" class="grid-action" ng-include="'gridActions.html'"></span>
+                    </td>
+                </tr>
+                <tr ng-repeat-end ng-show="row.$$hactive" class="hierarchy" ng-if="grid.hierarchy">
+                    <td colspan="{{grid.columns.length+1+(grid.rowActions.length?1:0)}}">
+                        <div ng-include="'gridHierarchy.html'"></div>
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="{{grid.columns.length+1+(grid.rowActions.length?1:0)}}">
+                        <ul class="pagination pagination-sm" ng-if="pagination.showPaging && pagination.pages.length>1">
+                            <li ng-class="{ disabled : pagination.currentPage == 0 }">
+                                <a href="" ng-click="pagination.setCurrentPage(0)"><i class="fa fa-angle-double-left"></i></a>
+                            </li>
+                            <li ng-class="{ disabled : pagination.currentPage == 0 }">
+                                <a href="" ng-click="pagination.setCurrentPage(pagination.currentPage - 1)" class="ng-binding"><i class="fa fa-angle-left"></i></a>
+                            </li>
+                            <li ng-repeat="p in pagination.getPages() track by $index" ng-class="{active:(pagination.currentPage == p)}">
+                                <a href="" ng-click="pagination.setCurrentPage(p)">{{p+1}}</a>
+                            </li>
+                            <li ng-class="{ disabled : pagination.currentPage == pagination.lastPage }">
+                                <a href="" ng-click="pagination.setCurrentPage(pagination.currentPage + 1)" class="ng-binding"><i class="fa fa-angle-right"></i></a>
+                            </li>
+                            <li ng-class="{ disabled : pagination.currentPage == pagination.lastPage }">
+                                <a href="" ng-click="pagination.setCurrentPage(pagination.lastPage)"><i class="fa fa-angle-double-right"></i></a>
+                            </li>
+                        </ul>
+                        showing {{((pagination.currentPage+1) * pagination.pageSize)>pagination.totalRecords?pagination.totalRecords:((pagination.currentPage+1) * pagination.pageSize)}} of {{pagination.totalRecords}} records
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </script>
+        <script type="text/ng-template" id="gridGroup.html">
+            <div ng-if="filter.filterExpressionActive" class="_filterexpression">
+                <a class="btn btn-xs btn-default" ng-if="filter.filterExpression.length==0" ng-click="filter.addChild(0, filter.filterExpression)"><i class="fa fa-plus"></i></a>
+                <div class="_expression" ng-repeat="exp in filter.filterExpression" ng-include="'gridFilterExpression.html'"></div>
+                <div class="text-left">
+                    <a class="btn btn-default" ng-if="filter.filterExpression.length>0" ng-class="{active:filter.setAsDefault}" ng-click="filter.setAsDefault=!filter.setAsDefault"><i class="fa fa-lg" ng-class="{'fa-square-o':!filter.setAsDefault,'fa-check-square-o':filter.setAsDefault}"></i> Default</a>
+                    <a class="btn btn-success" ng-if="filter.filterExpression.length>0" ng-click="filter.applyFilter()"><i class="fa fa-filter"></i> Apply filter</a>
+                    <a class="btn btn-success" ng-if="filter.filterExpression.length>0" ng-click="filter.saveFilter()"><i class="fa fa-save"></i> Save</a>
+                    <a class="btn btn-success" ng-if="filter.filterExpression.length>0 && filter.currentFilterExpression>0" ng-click="filter.saveFilter(true)"><i class="fa fa-save"></i> Save As</a>
+                </div>
+            </div>
+            <div ng-if="grid.groupActions.length" class="text-right _gridaction">
+                <span ng-repeat="action in grid.groupActions" class="grid-action" ng-include="'gridActions.html'"></span>
+            </div>
+            <table class="_grid-tbl" style="width: 99.99%;">
+                <thead>
+                    <tr ng-show="showHeaders">
+                        <th></th>
+                        <th ng-repeat="col in grid.columns track by $index" ng-click="orderby(col.value)" ng-if="col.value!=groupBy">
+                            {{col.name}}
+                            <i class="_sort-icon fa fa-sort-amount-{{sort.reverse?'desc':'asc'}}" ng-show="sort.column==col.value"></i>
+                        </th>
+                        <th ng-if="grid.rowActions.length"> Actions</th>
+                    </tr>
+                    <tr class="col-filter" ng-show="filter.columnFilterActive" class="col-filter">
+                        <td class="expand"></td>
+                        <td ng-repeat="col in grid.columns track by $index" ng-style="col.style">
+                            <input type="text" class="form-control" ng-model="filter.columns[col.value]" ng-if="!col.filter.type || col.filter.type=='text'" />
+                            <input type="number" class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='number'" />
+
+                            <input type="text" datepicker-popup datepicker-append-to-body="true" class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='date'" />
+
+                            <select class="form-control" ng-model="filter.columns[col.value]" ng-if="col.filter.type=='dropdown'">
+                                <option value=""></option>
+                                <option ng-repeat="cval in grid.getUniqueColumnValues(col)" value="{{cval}}">{{cval}}</option>
+                            </select>
+                        </td>
+                        <td ng-if="grid.rowActions.length"></td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat-start="grow in grid.groupArray  | groupfilter:filter.search:pagination.pageSize:pagination.currentPage:grid.serverPaging track by $index" class="grouphead" ng-click="grow[2]=!grow[2]">
+                        <td class="expand"><i class="fa fa-chevron-{{grow[2]?'down':'right'}}"></i></td>
+                        <td colspan="{{grid.columns.length+(grid.rowActions.length?1:0)}}">
+                            <span>{{grow[0]}}</span>
+                        </td>
+                    </tr>
+                    <tr ng-repeat-end ng-show="grow[2]" ng-repeat-start="row in grow[1]  |  orderBy:sort.column:sort.reverse | gridfilter:filter.search" class="group" ng-class="{odd:($index%2),even:!($index%2),selected:grid.inSelection(row)>=0}">
+                        <td class="expand"><i ng-if="grid.hierarchy" ng-init="row.$$hactive=!!row.$$hactive" ng-click="$event.stopPropagation();row.$$hactive=!row.$$hactive" class="fa fa-chevron-{{row.$$hactive?'down':'right'}}"></i></td>
+                        <td ng-click="grid.selectRow(row)" ng-repeat="c in grid.columns" ng-style="row._style" ng-if="c.value!=groupBy">
+                            <a ng-href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='link'"> {{row[c.value]}}</a>
+                            <a ng-href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='modal'" modal-popup="c.modalProperties" modal-popup-title="{{c.modalTitle}}"> {{row[c.value]}}</a>
+                            <a ng-href="{{grid.getURL(c.url,row)}}" ng-if="c.type=='aside'" aside="c.asideProperties" aside-title="{{c.asideTitle}}"> {{row[c.value]}}</a>
+                            <i class="{{row[c.value]}}" ng-if="c.type=='icon'"></i>
+                            <img ng-src="{{grid.getURL(c.url, row)}}" ng-if="c.type=='image'" />
+                            <span ng-if="c.type==''">{{row[c.value]}}</span>
+                        </td>
+                        <td ng-if="grid.rowActions.length" ng-click="$event.stopPropagation()" ng-style="row._style">
+                            <span ng-repeat="action in grid.rowActions" class="grid-action" ng-include="'gridActions.html'"></span>
+                        </td>
+                    </tr>
+                    <tr ng-repeat-end ng-show="row.$$hactive" class="hierarchy" ng-if="grid.hierarchy">
+                        <td colspan="{{grid.columns.length+1+(grid.rowActions.length?1:0)}}">
+                            <div ng-include="'gridHierarchy.html'"></div>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="{{grid.columns.length+1+(grid.rowActions.length?1:0)}}">
+                            <ul class="pagination pagination-sm" ng-if="pagination.showPaging && pagination.pages.length>1">
+                                <li ng-class="{ disabled : pagination.currentPage == 0 }">
+                                    <a href="" ng-click="pagination.setCurrentPage(0)"><i class="fa fa-angle-double-left"></i></a>
+                                </li>
+                                <li ng-class="{ disabled : pagination.currentPage == 0 }">
+                                    <a href="" ng-click="pagination.setCurrentPage(pagination.currentPage - 1)" class="ng-binding"><i class="fa fa-angle-left"></i></a>
+                                </li>
+                                <li ng-repeat="p in pagination.getPages() track by $index" ng-class="{active:(pagination.currentPage == p)}">
+                                    <a href="" ng-click="pagination.setCurrentPage(p)">{{p+1}}</a>
+                                </li>
+                                <li ng-class="{ disabled : pagination.currentPage == pagination.lastPage }">
+                                    <a href="" ng-click="pagination.setCurrentPage(pagination.currentPage + 1)" class="ng-binding"><i class="fa fa-angle-right"></i></a>
+                                </li>
+                                <li ng-class="{ disabled : pagination.currentPage == pagination.lastPage }">
+                                    <a href="" ng-click="pagination.setCurrentPage(pagination.lastPage)"><i class="fa fa-angle-double-right"></i></a>
+                                </li>
+                            </ul>
+                            showing {{((pagination.currentPage+1) * pagination.pageSize)>pagination.totalRecords?pagination.totalRecords:((pagination.currentPage+1) * pagination.pageSize)}} of {{pagination.totalRecords}} records
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </script>
+        <script type="text/ng-template" id="gridActions.html">
+            <span ng-if="action.textTemplate">
+                <a ng-if="action.displayType=='link' && action.actionType=='link'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='modal'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" modal-popup="action.modalSettings" modal-popup-title="{{action.name}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='aside'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" aside="action.modalSettings" aside-title="{{action.name}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='function'" class="{{action.customClass}}" href="" ng-click="grid.actionHandler($event, !!action.isGeneralAction, action.action, row)" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='link'" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='modal'" modal-popup="action.modalSettings" modal-popup-title="{{action.name}}" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='aside'" aside="action.modalProperties" aside-title="{{aside.name}}" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='function'" ng-click="grid.actionHandler($event, !!action.isGeneralAction, action.action, row)" class="btn btn-default {{action.customClass}}" href="" title="{{action.name}}">
+                    <span ng-bind-html="action.textTemplate"></span>
+                </a>
+            </span>
+
+
+            <span ng-if="!action.textTemplate">
+                <a ng-if="action.displayType=='link' && action.actionType=='link'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='modal'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" modal-popup="action.modalSettings" modal-popup-title="{{action.name}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='aside'" class="{{action.customClass}}" href="{{grid.getURL(action.action, row)}}" aside="action.modalSettings" aside-title="{{action.name}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='link' && action.actionType=='function'" class="{{action.customClass}}" href="" ng-click="grid.actionHandler($event, !!action.isGeneralAction, action.action, row)" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+                <a ng-if="action.displayType=='button' && action.actionType=='link'" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='modal'" modal-popup="action.modalSettings" modal-popup-title="{{action.name}}" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='aside'" aside="action.modalProperties" aside-title="{{aside.name}}" class="btn btn-default {{action.customClass}}" href="{{grid.getURL(action.action, row)}}" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+
+                <a ng-if="action.displayType=='button' && action.actionType=='function'" ng-click="grid.actionHandler($event, !!action.isGeneralAction, action.action, row)" class="btn btn-default {{action.customClass}}" href="" title="{{action.name}}">
+                    <span><i ng-if="action.iconClass" class="{{action.iconClass}}"></i> {{action.name}}</span>
+                </a>
+            </span>
+</script>
+        <script type="text/ng-template" id="gridHierarchy.html">
+            <div ng-if="row._hierarchy">
+                <grid config="row._hierarchy" ng-model="$parent.$parent.$parent.$parent.$parent.model"></grid>
+            </div>
+</script>
+        <script type="text/ng-template" id="gridFilterExpression.html">
+            <select ng-model="exp.boolean">
+                <option value=""> </option>
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+                <option value="NOT AND">NOT AND</option>
+                <option value="NOT OR">NOT OR</option>
+            </select>
+            <select ng-options="col.value as col.name for col in grid.columns" ng-model="exp.column" ng-change="filter.columnChange(exp)">
+                <option value=""> </option>
+            </select>
+            <select ng-model="exp.operator">
+                <option value="EqualTo">EqualTo</option>
+                <option value="NotEqualTo">NotEqualTo</option>
+                <option value="Like">Contains</option>
+                <!--<option value="GreaterThan">GreaterThan</option>
+                <option value="LessThan">LessThan</option>
+                <option value="GreaterThanOrEqualTo">GreaterThanOrEqualTo</option>
+                <option value="LessThanOrEqualTo">LessThanOrEqualTo</option>-->
+                <option value="Between">Between</option>
+                <option value="NotBetween">NotBetween</option>
+                <option value="IsNull">IsNull</option>
+                <option value="NotIsNull">NotIsNull</option>
+            </select>
+            <span ng-if="exp.operator!='Between' && exp.operator!='NotBetween' && exp.operator!='IsNull' && exp.operator!='NotIsNull'">
+                <span ng-if="exp.dataType=='date'">
+                    <input datepicker-popup="dd-MMM-yyyy" type="text" ng-model="exp.value1" placeholder="value1">
+                </span>
+                <span ng-if="exp.dataType=='number'">
+                    <input type="number" ng-model="exp.value1" placeholder="value1">
+                </span>
+                <span ng-if="exp.dataType!='date' && exp.dataType!='number'">
+                    <input type="text" ng-model="exp.value1" placeholder="value1">
+                </span>
+            </span>
+            <span ng-if="exp.operator=='Between' || exp.operator=='NotBetween'">
+                <span ng-if="exp.dataType=='date'">
+                    <input datepicker-popup="dd-MMM-yyyy" type="text" ng-model="exp.value1" placeholder="value1"> AND
+                    <input datepicker-popup="dd-MMM-yyyy" type="text" ng-model="exp.value2" placeholder="value2">
+                </span>
+                <span ng-if="exp.dataType=='number'">
+                    <input type="number" ng-model="exp.value1" placeholder="value1"> AND
+                    <input type="number" ng-model="exp.value2" placeholder="value2">
+                </span>
+                <span ng-if="exp.dataType!='date' && exp.dataType!='number'">
+                    <input type="text" ng-model="exp.value1" placeholder="value1"> AND
+                    <input type="text" ng-model="exp.value2" placeholder="value2">
+                </span>
+            </span>
+            <a ng-click="filter.addChild($index, exp.parent)"><i class="fa fa-plus"></i></a>
+            <a ng-click="filter.addChild($index, exp.children)"><i class="fa fa-plus"></i> <i class="fa fa-level-down"></i></a>
+            <a class="red" ng-click="filter.deleteChild(exp)"><i class="fa fa-times"></i></a>
+
+            <div ng-if="exp.children.length" class="_expression-box">
+                <div ng-repeat="exp in exp.children" class="_expression" ng-include="'gridFilterExpression.html'"></div>
+            </div>
+</script>
