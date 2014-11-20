@@ -194,7 +194,6 @@ angular.module('grid', ['ngSanitize'])
 
             },
             controller: function ($scope) {
-                $scope.templatePath = path + 'Scripts/lib/ui-templates/';
                 $scope.pagination = {
                     showPaging: false,
                     pageSize: 0,
@@ -637,7 +636,7 @@ angular.module('grid', ['ngSanitize'])
                         data.Expression = fvalue;
                         data.IsDefault = !!isDefault;
 
-                        CustomGridService.saveFilter(path + 'api/grid/CreateOrUpdateFilter', data, 'POST', $scope.headers).then(function (data) {
+                        CustomGridService.saveFilter($scope.gridOptions.saveFilterUrl, data, 'POST', $scope.headers).then(function (data) {
                             $.notify('Filter saved successfully', {type:'success'});
                             $scope.filter.init();
                         });
@@ -673,7 +672,7 @@ angular.module('grid', ['ngSanitize'])
                             $scope.filter.setAsDefault = false;
 
                             var data = { gridId: $scope.grid.extendedObject.GridID };
-                            CustomGridService.loadFilter(path + 'api/grid/GetGridFilters', data, 'GET', $scope.headers).then(function (data) {
+                            CustomGridService.loadFilter($scope.gridOptions.loadFilterUrl, data, 'GET', $scope.headers).then(function (data) {
                                 $scope.filter.filterList = data;
                                 $scope.filter.filterList.splice(0,0,{ID:0, Name:''});
                                 $scope.initLoad = false;
